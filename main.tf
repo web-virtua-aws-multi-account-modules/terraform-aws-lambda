@@ -1,3 +1,31 @@
+data "archive_file" "create_zip_lambda_code" {
+  count = (var.lambda_compressed_code != null && var.lambda_source_code_path != null) ? 1 : 0
+
+  type        = var.lambda_compress_type
+  source_dir  = var.lambda_source_code_path
+  output_path = var.lambda_compressed_code
+}
+
+locals {
+  zip_layers = flatten([
+    for item in var.lambda_layers != null ? var.lambda_layers : [] : [
+      {
+        type        = item.compress_type != null ? item.compress_type : "zip"
+        source_dir  = item.source_code_path
+        output_path = item.compressed_code
+      }
+    ]
+  ])
+}
+
+data "archive_file" "create_zip_lambda_layer" {
+  count = length(local.zip_layers)
+
+  type        = local.zip_layers[count.index].type
+  source_dir  = local.zip_layers[count.index].source_dir
+  output_path = local.zip_layers[count.index].output_path
+}
+
 resource "aws_lambda_layer_version" "create_lambda_layers" {
   count = var.lambda_layers != null ? length(var.lambda_layers) : 0
 
@@ -15,10 +43,10 @@ resource "aws_lambda_layer_version" "create_lambda_layers" {
 resource "aws_lambda_function" "create_lambda_function" {
   function_name     = var.lambda_name
   runtime           = var.runtime
-  handler           = try(split(".", var.handler_file)[1], null) == "handler" ? var.handler_file : "${var.handler_file}.handler"
+  handler           = var.handler_file # try(split(".", var.handler_file)[1], null) == "handler" ? var.handler_file : "${var.handler_file}.handler"
   role              = try(aws_iam_role.create_iam_for_lambda[0].arn, var.lambda_role_arn)
   layers            = try(aws_lambda_layer_version.create_lambda_layers[*].arn, var.layers_arn)
-  filename          = var.file_name
+  filename          = var.file_name != null ? var.file_name : var.lambda_compressed_code != null ? var.lambda_compressed_code : null
   s3_bucket         = var.bucket_name
   s3_key            = var.bucket_object
   s3_object_version = var.bucket_object_version
@@ -26,6 +54,7 @@ resource "aws_lambda_function" "create_lambda_function" {
   image_uri         = var.image_uri
   timeout           = var.timeout
   memory_size       = var.memory_size
+  #source_code_hash =
 
   dynamic "ephemeral_storage" {
     for_each = var.ephemeral_storage_size != null ? [1] : []
@@ -51,6 +80,10 @@ resource "aws_lambda_function" "create_lambda_function" {
       security_group_ids = var.security_group_ids
     }
   }
+
+  depends_on = [
+    data.archive_file.create_zip_lambda_code
+  ]
 }
 
 resource "aws_cloudwatch_log_group" "create_log_group" {

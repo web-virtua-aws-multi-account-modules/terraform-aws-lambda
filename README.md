@@ -51,7 +51,7 @@ provider "aws" {
 
 ## Usage exemples
 
-### Lambda function with URL, layer and application files from local and using default VPC
+### Lambda function with URL, layer and application files from local and using default VPC, in this case the zipe file already exists
 
 ```hcl
 module "lambda_layer_file_local" {
@@ -77,6 +77,42 @@ module "lambda_layer_file_local" {
   }
 }
 ```
+
+### Lambda function with URL, layer and application files from local and using default VPC, in this case the files will be ziped during the creation
+
+```hcl
+module "lambda_layer_file_local" {
+  source = "web-virtua-aws-multi-account-modules/lambda/aws"
+
+  lambda_name             = "tf-test-lambda-function"
+  lambda_source_code_path = "./application/app/dist"
+  lambda_compressed_code  = "./application/app/dist.zip"
+  file_name               = "./application/app/dist.zip"
+  handler_file            = "index.handler"
+  runtime                 = "nodejs16.x"
+  make_lambda_url         = true
+  aws_account_id          = 649......777
+
+  envs = {
+    ENVIRONMENT = "production"
+  }
+
+  lambda_layers = [
+    {
+      name                = "tf-lambda-api-layer-test"
+      file_name           = "./application/app_dependencies/nodejs.zip"
+      compatible_runtimes = ["nodejs16.x"]
+      description         = "Teste layer from file local 1.0"
+      source_code_path    = "./application/app/nodejs"
+      compressed_code     = "./application/app/nodejs.zip"
+      compress_type       = "zip"
+    }
+  ]
+
+  providers = {
+    aws = aws.alias_profile_a
+  }
+}
 
 ### Lambda function with URL, layer and application files from bucket S3 and using default VPC
 
@@ -230,6 +266,9 @@ module "lambda_with_envs_without_url" {
 |------|-------------|------|---------|:--------:|:--------|
 | region | `string` | `us-east-1` | no | Region that received the logs, can be one region or * for all regions | `-` |
 | aws_account_id | `string` | `*` | no | AWS account ID, can be one account or * for any account | `-` |
+| lambda_source_code_path | `string` | `null` | no | Lambda file zip path with the files ziped to application | `-` |
+| lambda_compressed_code | `string` | `null` | no | Lambda source code compressed to zip files | `-` |
+| lambda_compress_type | `string` | `zip` | no | Type of compression to source code | `-` |
 | file_name | `string` | `null` | no | The file_name variable send the files from your local machine to create the lambda function, if defined bucket_name variable cannot be used, ex: file-name.zip | `-` |
 | bucket_file_name | `string` | `null` | no | Bucket name to lambda layer | `-` |
 | bucket_name | `string` | `null` | no | Bucket name that store the lambda resources, is optional, can be create only on lambda or in bucket | `-` |
@@ -315,6 +354,9 @@ variable "lambda_layers" {
     source_code_hash      = optional(number)
     description           = optional(string)
     skip_destroy          = optional(bool)
+    compressed_code       = optional(string)
+    source_code_path      = optional(string)
+    compress_type         = optional(string)
   }))
   default = lambda_layers = [
     {

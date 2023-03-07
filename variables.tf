@@ -10,6 +10,24 @@ variable "aws_account_id" {
   default     = "*"
 }
 
+variable "lambda_source_code_path" {
+  description = "Lambda file zip path with the files ziped to application"
+  type        = string
+  default     = null
+}
+
+variable "lambda_compressed_code" {
+  description = "Lambda source code compressed to zip files"
+  type        = string
+  default     = null
+}
+
+variable "lambda_compress_type" {
+  description = "Type of compression to source code"
+  type        = string
+  default     = "zip"
+}
+
 variable "file_name" {
   description = "The file_name variable send the files from your local machine to create the lambda function, if defined bucket_name variable cannot be used, ex: file-name.zip"
   type        = string
@@ -259,6 +277,9 @@ variable "lambda_layers" {
     source_code_hash      = optional(number)
     description           = optional(string)
     skip_destroy          = optional(bool)
+    compressed_code       = optional(string)
+    source_code_path      = optional(string)
+    compress_type         = optional(string)
   }))
   default = null
 }
