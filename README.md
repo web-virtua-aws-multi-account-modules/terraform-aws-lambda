@@ -113,6 +113,7 @@ module "lambda_layer_file_local" {
     aws = aws.alias_profile_a
   }
 }
+```
 
 ### Lambda function with URL, layer and application files from bucket S3 and using default VPC
 
