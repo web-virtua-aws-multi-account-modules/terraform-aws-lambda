@@ -7,15 +7,20 @@ data "archive_file" "create_zip_lambda_code" {
 }
 
 locals {
-  zip_layers = flatten([
-    for item in var.lambda_layers != null ? var.lambda_layers : [] : [
-      {
-        type        = item.compress_type != null ? item.compress_type : "zip"
-        source_dir  = item.source_code_path
-        output_path = item.compressed_code
-      }
-    ]
-  ])
+  zip_layers = [for item in var.lambda_layers != null ? var.lambda_layers : [] : {
+    type        = item.compress_type != null ? item.compress_type : "zip"
+    source_dir  = item.source_code_path
+    output_path = item.compressed_code
+  } if(item.compressed_code != null && item.source_code_path != null)]
+  # zip_layers = flatten([
+  #   for item in var.lambda_layers != null ? var.lambda_layers : [] : [
+  #     {
+  #       type        = item.compress_type != null ? item.compress_type : "zip"
+  #       source_dir  = item.source_code_path
+  #       output_path = item.compressed_code
+  #     }
+  #   ]
+  # ])
 }
 
 data "archive_file" "create_zip_lambda_layer" {
